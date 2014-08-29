@@ -20,13 +20,19 @@
 	};
 	fp.prototype = {
 		init: function(){
-
 			this.setUI();
 			this.bindUI();
 
 			this.startSection = parseInt(this.startSection, 10);
 			if( this.startSection >= this.els.length || this.options.startSection < 0 ){
 				this.startSection = 0;
+			}
+			if(this.options.setHash){
+				var el = $('.fp-section[data-anchor="'+ location.hash.replace('#','') +'"]');
+				if(el.length){
+					this.startSection = el.index('.fp-section');
+					this.moveSection(this.startSection + 1);
+				}
 			}
 		},
 		setUI: function(){
@@ -44,11 +50,15 @@
 
 			this.els.addClass('fp-section');
 
+			this.els.each(function(i){
+				_self.options.setHash && 
+					$(this).attr('data-anchor', 'fpSection' + (i+1) );
+			});
+
 			if( this.options.pager || this.options.pagerAnchorBuilder ){
 				this.buildPager(this.els);
 			}
 
-			// set hash 
 			this.els.eq(this.options.startSection).addClass('active');
 
 			this.setAutoScrolling(this.options.autoScrolling);
@@ -67,7 +77,9 @@
 			
 			// window.render
 
-			// if(opt.hash){}
+			// @TODO
+			// if(history.pushStatus){}
+			opt.setHash && $(window).bind('hashchange', $.proxy(this.hashChangeHandle, this) );
 		},
 		/**
 		 * set auto scroll
@@ -75,6 +87,7 @@
 		 */
 		setAutoScrolling: function(value){
 			var element = $('.fp-section.'+ this.ac);
+			console.log( $('.fp-section.'+ this.ac), element.position().top )
 			this.options.autoScrolling = value;
 			if(value){
 				$('html, body').css({
@@ -153,6 +166,17 @@
 				}
 			}
 		},
+		hashChangeHandle: function(){
+			if( !this.isMoving ){
+				console.log('hashChangeHandle')
+				var value = window.location.hash.replace('#',''),
+					section = $('.fp-section[data-anchor="'+value+'"]'),
+					i = section.index('.fp-section');
+				if( value.length && section.length ){
+					this.moveSection(i + 1);
+				}
+			}
+		},
 
 		moveSectionUp: function(){
 			var prev = $('.fp-section.' + this.ac).prev('.fp-section');
@@ -190,6 +214,7 @@
 				nextSectionIndex = element.index('.fp-section'),
 				currentSectionIndex = opt.startSection,
 				currentSection = $('.fp-section').eq(currentSectionIndex),
+				anchorLink = element.data('anchor'),
 				dtop = dest.top,
 				cls = this.ac,
 				scrollOptions = {},
@@ -211,17 +236,19 @@
 			element.addClass(cls).siblings().removeClass(cls);
 			this.updateActicePagerLink( $(opt.pager), opt.startSection, opt.activePagerClass )
 
+			opt.setHash && (location.hash = anchorLink);
 			$.isFunction(opt.before) && 
 				opt.before.call( _self, currentSection, element );
 
 			if( opt.css3 && opt.autoScrolling ){
 				var translate3d = 'translate3d(0px, -'+ dtop +'px, 0px',
-					t = this.options.setSpeed / 1000;
+					t = this.options.setSpeed / 1000,
+					e = this.options.css3Easing;
 
 					this.container.toggleClass('fp-easing', true);
 					$('.fp-easing').css({
-						'-webkit-transition': 'all '+ t +'s ease-out', 
-						'transition': 'transition: all '+ t +'s ease-out'
+						'-webkit-transition': 'all '+ t +'s '+ e+'', 
+						'transition': 'transition: all '+ t +'s '+ e+''
 					});
 					this.container.css(this.getTransforms(translate3d));
 
@@ -232,11 +259,9 @@
 					var timeId2 = setTimeout(function(){
 						_self.isMoving = false;	
 						clearTimeout(timeId2);
-						console.log('is delay, and cleartimeId2')
 					}, opt.setDelay);
 
 					clearTimeout(timeId);
-					console.log('is speed, and cleartimeId')
 				}, opt.setSpeed);
 			}else{
 				this.container.animate(
@@ -312,7 +337,9 @@
 		},
 		silentScroll: function(top){
 			if( this.options.css3 ){
-				var translate3d = 'translate3d(0px, -'+ top +'px, 0px)';
+				var translate3d = 'translate3d(0px, -'+ top +'px, 0px)',
+					t = this.options.setSpeed / 1000,
+					e = this.options.css3Easing;
 
 				this.container.toggleClass('fp-easing', false);
 				this.container.css(this.getTransforms(translate3d));
@@ -375,6 +402,7 @@
 		autoScrolling: true, 
 		before: null,  // transition callback: function(currentSection, nextSection, sectionIndex)
 		css3: true,  // css3 animate , if false it will use jquery animations
+		css3Easing: 'ease-out',
 		easing: 'swing',
 		fixTop: 0,
 		keyboardScrolling: true,
@@ -382,6 +410,7 @@
 		// resize: false,
 		sectionSelector: '.section',
 		setDelay: 600,
+		setHash: false,
 		setKeyboard: true,  // set scrolling by use the keyboard arrow keys
 		setMouseWheel: true,  // set scrolling by use the mouse wheel or the trackpad
 		setSpeed: 700,  // set scrolling speed
@@ -394,15 +423,15 @@
 		prev: null,
 		next: null
 	};
+	/**
+	 * Log
+	 * 
+	 * has sub sider
+	 * wait to update 
+	 * touch event 
+	 * window.resize
+	 * fix top value
+	 * test code 
+	 * 
+	 */
 })(jQuery);
-/**
- * Log
- * 
- * wait to update 
- * touch event 
- * window.resize
- * location.hash
- * fix top value
- * test code 
- * 
- */
