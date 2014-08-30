@@ -6,6 +6,8 @@
 (function($){
 	"use strict";
 	var wrapperClass = 'fp-wrapper';
+	var ua = navigator.userAgent,
+		isTouchDevice = /AppleWebKit.*Mobile/i.test(ua) || (/MIDP|SymbianOS|NOKIA|SAMSUNG|LG|NEC|TCL|Alcatel|BIRD|DBTEL|Dopod|PHILIPS|HAIER|LENOVO|MOT-|Nokia|SonyEricsson|SIE-|Amoi|ZTE/.test(ua));
 	
 	var fp = function(options, container){
 		this.options = $.extend({}, $.fn.fullpage.defaults, options || {});
@@ -15,6 +17,11 @@
 
 		this.isMoving = false;
 		this.options.css3 = this.options.css3 && this.support3d();
+
+		this.touchStartY = 0;
+		this.touchStartX = 0;
+		this.touchEndY = 0;
+		this.touchEndX = 0;
 
 		this.init();
 	};
@@ -59,6 +66,11 @@
 				this.buildPager(this.els);
 			}
 
+			if(this.options.direction === 'horizontal'){
+				// @REVIEW; 
+				$('.fp-section').width( $(window).width() )
+			}
+
 			this.els.eq(this.options.startSection).addClass('active');
 
 			this.setAutoScrolling(this.options.autoScrolling);
@@ -69,6 +81,7 @@
 			// !this.options.autoScrolling && $(window).on('scroll', $.proxy(this.scrollHandler,this) );
 			opt.keyboardScrolling && $(document).keydown( $.proxy(this.keyHandler,this) );
 			opt.autoScrolling ? this.addMouseWheelHandler() : this.removeMouseWheelHandler();
+			opt.setTouch ? this.addTouchHandler() : this.removeTouchHandler();
 
 			opt.prev && $('body').on(opt.pagerEvent, opt.prev, $.proxy(this.moveSectionUp,this) );
 			opt.next && $('body').on(opt.pagerEvent, opt.next, $.proxy(this.moveSectionDown,this) );
@@ -211,11 +224,12 @@
 			var _self = this,
 				opt = this.options,
 				dest = element.position(),
+				dir = !(opt.direction === 'horizontal'),
 				nextSectionIndex = element.index('.fp-section'),
 				currentSectionIndex = opt.startSection,
 				currentSection = $('.fp-section').eq(currentSectionIndex),
 				anchorLink = element.data('anchor'),
-				dtop = dest.top,
+				dtop = dir ? dest.top : dest.left,
 				cls = this.ac,
 				scrollOptions = {},
 				s;
@@ -225,9 +239,9 @@
 			}
 
 			if( opt.autoScrolling ){
-				scrollOptions['top'] = -dtop;
+				dir ? scrollOptions['top'] = -dtop : scrollOptions['left'] = -dtop;
 			}else{
-				scrollOptions['scrollTop'] = dtop;
+				dir ? scrollOptions['scrollTop'] = dtop : scrollOptions['scrollLeft'] = dtop;
 			}
 
 			this.isMoving = true;
@@ -241,10 +255,12 @@
 				opt.before.call( _self, currentSection, element );
 
 			if( opt.css3 && opt.autoScrolling ){
-				var translate3d = 'translate3d(0px, -'+ dtop +'px, 0px',
+				var translate3d = dir ? 'translate3d(0px, -'+ dtop +'px, 0px)'
+										: 'translate3d(-'+ dtop +'px, 0px, 0px)',
 					t = this.options.setSpeed / 1000,
 					e = this.options.css3Easing;
 
+console.log(dest, dest.left)
 					this.container.toggleClass('fp-easing', true);
 					$('.fp-easing').css({
 						'-webkit-transition': 'all '+ t +'s '+ e+'', 
@@ -273,11 +289,9 @@
 							var timeId2 = setTimeout(function(){
 								_self.isMoving = false;	
 								clearTimeout(timeId2);
-								console.log('is delay, and cleartimeId2')
 							}, opt.setDelay);
 
 							clearTimeout(timeId);
-							console.log('is speed, and cleartimeId')
 						}, opt.setSpeed);		
 					}
 				);
@@ -299,11 +313,97 @@
 				document.attachEvent("onmousewheel", $.proxy(this.mouseWheelHandler,this) ); //IE 6/7/8
 			}
 		},
+
+		addTouchHandler: function(){
+			var MSPointer = this.getMSPointer();
+			$(document).off('touchstart ' +  MSPointer.down).on('touchstart ' + MSPointer.down, $.proxy(this.touchStartHandler, this) );
+			$(document).off('touchmove ' + MSPointer.move).on('touchmove ' + MSPointer.move, $.proxy(this.touchMoveHandler, this) );
+		},
+		removeTouchHandler: function(){
+			var MSPointer = this.getMSPointer();
+			$(document).off('touchstart ' + MSPointer.down);
+			$(document).off('touchmove ' + MSPointer.move);
+		},
+		getMSPointer: function(){
+			var pointer;
+
+			//IE >= 11
+			if(window.PointerEvent){
+				pointer = { down: "pointerdown", move: "pointermove"};
+			}
+
+			//IE < 11
+			else{
+				pointer = { down: "MSPointerDown", move: "MSPointerMove"};
+			}
+
+			return pointer;
+		},
+		getEventsPage: function(e){
+			var events = new Array();
+			if (window.navigator.msPointerEnabled){
+				events['y'] = e.pageY;
+				events['x'] = e.pageX;
+			}else{
+				events['y'] = e.touches[0].pageY;
+				events['x'] =  e.touches[0].pageX;
+			}
+
+			return events;
+		},
+		touchStartHandler: function(event){
+			var e = event.originalEvent;
+			var touchEvents = this.getEventsPage(e);
+			this.touchStartY = touchEvents['y'];
+			this.touchStartX = touchEvents['x'];
+		},
+		touchMoveHandler: function(event){
+			var e = event.originalEvent;
+
+			if( this.options.autoScrolling ){
+				// prevent the easing on IOS
+				event.preventDefault();	
+			}
+
+			if( this.options.autoScrolling && !this.isMoving ){
+				var touchEvents = this.getEventsPage(e);
+				this.touchEndY = touchEvents['y'];
+				this.touchEndX = touchEvents['x'];
+
+				if( Math.abs( this.touchStartY - this.touchEndY ) > ($(window).height() / 100 * 5) ){
+					if( this.touchStartY > this.touchEndY ){
+						this.moveSectionDown();
+					}else if( this.touchEndY > this.touchStartY ){
+						this.moveSectionUp();
+					}
+				}
+			}
+
+
+			if( this.options.autoScrolling && !this.isMoving ){
+				e = window.event || e;
+				var delta = Math.max(-1, Math.min(1,
+					(e.wheelDelta || -e.deltaY || -e.detail)));
+
+					// scrollable,
+					// activeSection = $('.fp-section.' + this.ac);
+
+				// scroll down
+				if(delta < 0){
+					this.moveSectionDown();
+				}else{
+					this.moveSectionUp();
+				}
+			}
+
+			
+		},
+
 		buildPager: function(els){
 			var _self = this,
 				opt = this.options,
 				el = $(opt.pager), a;
-			console.log(el, el.length)
+			
 			if( el.length ){
 				el.show();
 			}else{
@@ -403,6 +503,7 @@
 		before: null,  // transition callback: function(currentSection, nextSection, sectionIndex)
 		css3: true,  // css3 animate , if false it will use jquery animations
 		css3Easing: 'ease-out',
+		direction: 'vertical',  // vertical || horizontal
 		easing: 'swing',
 		fixTop: 0,
 		keyboardScrolling: true,
@@ -415,7 +516,7 @@
 		setMouseWheel: true,  // set scrolling by use the mouse wheel or the trackpad
 		setSpeed: 700,  // set scrolling speed
 		setTimeout: 0, // set interval play time; if 0, turn off
-		// setTouch: false,  // set scrolling by use touch gestures
+		setTouch: true,  // set scrolling by use touch gestures
 		startSection: 0,
 		pager: null,  // navigation dots
 		pagerAnchorBuilder: null,  // callback fn for building anchor links : function(index, DOMelement)
@@ -427,11 +528,11 @@
 	 * Log
 	 * 
 	 * has sub sider
-	 * wait to update 
-	 * touch event 
 	 * window.resize
 	 * fix top value
 	 * test code 
+	 * 
+	 * touch event / wait for update; and untest for device
 	 * 
 	 */
 })(jQuery);
