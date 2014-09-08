@@ -2,11 +2,9 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>FullPage js Demo1</title>
+	<title>FullPage js test</title>
 
 	<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-
-	<!-- <link rel="stylesheet" href="examples.css"> -->
 	<style>
 		*{margin: 0;padding: 0;}
 
@@ -31,47 +29,45 @@
 		/*.fp-wrapper{width: 500%; }
 		.section{float: left; }*/
 
-		/**
-		* must need ;
-		*/
-		.fp-easing {
-		    /*-webkit-transition: all 0.7s ease-out;
-		    transition: all 0.7s ease-out;*/
-		}
-		.fp-section-hor{
-
-		}
 	</style>
 
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-	<!-- <script src="http://127.0.0.1:8080/jquery.js"></script> -->
+	<!-- // <script src="http://127.0.0.1:8080/jquery.js"></script> -->
 	<script src="../fullpage.js"></script>
 	<script>
 		$(function(){
 			$('#fullpage').fullpage({
-				// direction: 'horizontal',
-				pager: '.fp-pager',
+				// activeSectionClass: 'active',
+				// activePagerClass: 'cur1',
+				after: null,
+				autoScrolling: true, 
+				before: null,
+				css3: true,
+				css3Easing: 'ease-out',
+				direction: 'vertical',
+				easing: 'swing',
+				fixTop: 0,
+				loop: false,
+				// resize: false,
+				sectionSelector: '.section',
+				setDelay: 600,
+				setHash: false,
+				setKeyboard: true,
+				setMouseWheel: true,
+				setSpeed: 700,
+				setTimeout: 0,
+				setTouch: true,
+				startSection: 0,
+				// pager: '.fp-pager1 ul',
 				// pagerAnchorBuilder: function(i){
-				// 	// console.log($('.fp-pager1 li').eq(i), arguments , 'ar');
-				// 	return $('.fp-pager1 li').eq(i);
+				// 	return '.fp-pager1 li';
 				// },
-				// setTouch: false,
-				// setHash: true,
-				// css3: false,
-				// setDelay: 4000,
-				// setSpeed: 2000,
-
-				// next: '#next',
-				// prev: '#prev',
-				// before: function(){},
-				// after: function(){},
-
-				// sectionSelector: ''
-				// autoScrolling: false,
-				loop: false
+				// pagerEvent: 'click',
+				prev: null,
+				next: null
 			});
 
-			// $('#fullpage').fullpage.moveSection(3);
+			// $('#fullpage').fullpage.moveTo(3);
 		});
 	</script>
 </head>

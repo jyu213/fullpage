@@ -71,15 +71,14 @@
 				$('.fp-section').width( $(window).width() )
 			}
 
-			this.els.eq(this.options.startSection).addClass('active');
+			this.els.eq(this.options.startSection).addClass(this.options.activeSectionClass);
 
 			this.setAutoScrolling(this.options.autoScrolling);
 		},
 		bindUI: function(){
 			var opt = this.options;
 			// trigger when element hover
-			// !this.options.autoScrolling && $(window).on('scroll', $.proxy(this.scrollHandler,this) );
-			opt.keyboardScrolling && $(document).keydown( $.proxy(this.keyHandler,this) );
+			opt.setKeyboard && $(document).keydown( $.proxy(this.keyHandler,this) );
 			opt.autoScrolling ? this.addMouseWheelHandler() : this.removeMouseWheelHandler();
 			opt.setTouch ? this.addTouchHandler() : this.removeTouchHandler();
 
@@ -90,8 +89,6 @@
 			
 			// window.render
 
-			// @TODO
-			// if(history.pushStatus){}
 			opt.setHash && $(window).bind('hashchange', $.proxy(this.hashChangeHandle, this) );
 		},
 		/**
@@ -100,8 +97,8 @@
 		 */
 		setAutoScrolling: function(value){
 			var element = $('.fp-section.'+ this.ac);
-			console.log( $('.fp-section.'+ this.ac), element.position().top )
 			this.options.autoScrolling = value;
+
 			if(value){
 				$('html, body').css({
 					'overflow': 'hidden',
@@ -117,12 +114,6 @@
 				this.silentScroll(0);
 				$('html, body').scrollTop(element.position().top);
 			}
-		},
-		scrollHandler: function(e){
-			// if(!this.options.autoScrolling){
-				// @TODO; when window is scrolling
-				console.log('is widow scrolling')
-			// }
 		},
 		mouseWheelHandler: function(e){
 			if( this.options.autoScrolling && !this.isMoving ){
@@ -260,7 +251,7 @@
 					t = this.options.setSpeed / 1000,
 					e = this.options.css3Easing;
 
-console.log(dest, dest.left)
+
 					this.container.toggleClass('fp-easing', true);
 					$('.fp-easing').css({
 						'-webkit-transition': 'all '+ t +'s '+ e+'', 
@@ -492,7 +483,7 @@ console.log(dest, dest.left)
 	$.fn.fullpage = function(options){
 		f = new fp(options, $(this));
 	};
-	$.fn.fullpage.moveSection = function(){
+	$.fn.fullpage.moveTo = function(){
 		return f.moveSection.apply(f, arguments);	
 	}
 	$.fn.fullpage.defaults = {
@@ -506,7 +497,6 @@ console.log(dest, dest.left)
 		direction: 'vertical',  // vertical || horizontal
 		easing: 'swing',
 		fixTop: 0,
-		keyboardScrolling: true,
 		loop: false,
 		// resize: false,
 		sectionSelector: '.section',
